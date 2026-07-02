@@ -11,9 +11,12 @@ from urllib.parse import quote_plus
 
 import keyboard
 import pyperclip
+import pystray
+from PIL import Image, ImageDraw
 
 
-APP_TITLE = "AutoHotkeyGUI"
+APP_VERSION = "3.1.0"
+APP_TITLE = f"LoGinKeyboard {APP_VERSION}"
 BLOG_URL = "https://loginshin.tistory.com/17"
 QUESTION_URL = "https://open.kakao.com/o/sVFNtrrf"
 
@@ -31,6 +34,7 @@ kernel32 = ctypes.windll.kernel32
 
 gui_root = None
 gui_lock = threading.Lock()
+tray_icon = None
 caps_down_at = None
 caps_combo_used = False
 caps_h_prefix_down = False
@@ -145,6 +149,50 @@ def translate_selected_text():
 
 def open_url(url):
     webbrowser.open(url)
+
+
+def create_tray_image():
+    image = Image.new("RGBA", (64, 64), (16, 20, 24, 255))
+    draw = ImageDraw.Draw(image)
+    draw.rounded_rectangle((8, 8, 56, 56), radius=12, fill=(83, 209, 141, 255))
+    draw.rectangle((18, 23, 46, 42), fill=(16, 20, 24, 255))
+    draw.rectangle((22, 27, 27, 32), fill=(238, 243, 248, 255))
+    draw.rectangle((30, 27, 35, 32), fill=(238, 243, 248, 255))
+    draw.rectangle((38, 27, 43, 32), fill=(238, 243, 248, 255))
+    draw.rectangle((22, 35, 43, 38), fill=(238, 243, 248, 255))
+    return image
+
+
+def quit_app(_icon=None, _item=None):
+    global tray_icon
+    try:
+        keyboard.unhook_all()
+    except Exception:
+        pass
+
+    if tray_icon is not None:
+        try:
+            tray_icon.stop()
+        except Exception:
+            pass
+        tray_icon = None
+
+    os._exit(0)
+
+
+def start_tray_icon():
+    def tray_thread():
+        global tray_icon
+        menu = pystray.Menu(
+            pystray.MenuItem("LoGinKeyboard 실행 중", lambda: None, enabled=False),
+            pystray.MenuItem("도움말 열기", lambda _icon, _item: show_help_gui()),
+            pystray.MenuItem("블로그 열기", lambda _icon, _item: open_url(BLOG_URL)),
+            pystray.MenuItem("종료", quit_app),
+        )
+        tray_icon = pystray.Icon("LoGinKeyboard", create_tray_image(), "LoGinKeyboard", menu)
+        tray_icon.run()
+
+    threading.Thread(target=tray_thread, daemon=True).start()
 
 
 def show_help_gui():
@@ -482,7 +530,7 @@ def register_hotkeys():
     keyboard.add_hotkey("caps lock+left", combo(lambda: send_text("←")), suppress=True)
     keyboard.add_hotkey("caps lock+right", combo(lambda: send_text("→")), suppress=True)
 
-    keyboard.add_hotkey("ctrl+shift+q", lambda: os._exit(0), suppress=True)
+    keyboard.add_hotkey("ctrl+shift+q", quit_app, suppress=True)
 
 
 def main():
@@ -490,6 +538,7 @@ def main():
     keep_lock_keys_stable()
     start_league_client_exit_hook()
     register_hotkeys()
+    start_tray_icon()
     show_help_gui()
     keyboard.wait()
 

@@ -1,0 +1,15 @@
+LoGinKeyboard v3.1.0
+
+Release date: 2026-07-02
+
+Changes:
+- Added Windows system tray icon.
+- Added tray menu with help, blog, and exit actions.
+- Kept Ctrl + Shift + Q as the quick exit hotkey.
+
+File:
+- LoGinKeyboard-v3.1.0.exe
+
+Notes:
+- Run as administrator if keyboard hooks do not work.
+- Windows Defender or antivirus software may warn because this app uses keyboard hooks.
