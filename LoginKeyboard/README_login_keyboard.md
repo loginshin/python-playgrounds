@@ -1,5 +1,7 @@
 # LoginKeyboard Python
 
+개발자용 구조/빌드/배포 명세는 `DEVELOPMENT.md`를 기준으로 확인하세요.
+
 AutoHotkey로 작성했던 LoGinKeyboard를 Python으로 옮긴 버전입니다.
 
 ## 가능 여부

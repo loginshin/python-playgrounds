@@ -1,3 +1,18 @@
+r"""LoGinKeyboard 메인 프로그램.
+
+이 앱은 Windows 전용 키보드 보조 유틸리티입니다.
+- NumLock/CapsLock/ScrollLock 상태를 의도한 값으로 유지합니다.
+- `keyboard` 패키지로 전역 단축키와 키 훅을 등록합니다.
+- Tkinter로 도움말/연습 창을 표시합니다.
+- Windows 트레이 아이콘으로 실행 상태 확인과 종료 메뉴를 제공합니다.
+
+배포용 빌드 명령 예시:
+    python -m PyInstaller --onefile --noconsole --name LoGinKeyboard-vX.Y.Z \
+        --distpath releases\X.Y.Z --hidden-import keyboard \
+        --hidden-import pyperclip --hidden-import pystray --hidden-import PIL \
+        login_keyboard.py
+"""
+
 import ctypes
 import ctypes.wintypes
 import os
@@ -20,6 +35,7 @@ APP_TITLE = f"LoGinKeyboard {APP_VERSION}"
 BLOG_URL = "https://loginshin.tistory.com/17"
 QUESTION_URL = "https://open.kakao.com/o/sVFNtrrf"
 
+# ctypes로 Windows 키 상태와 훅을 다룰 때 사용하는 상수입니다.
 VK_HANGUL = 0x15
 VK_CAPITAL = 0x14
 VK_NUMLOCK = 0x90
@@ -32,6 +48,8 @@ PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
 user32 = ctypes.windll.user32
 kernel32 = ctypes.windll.kernel32
 
+# 런타임 공유 상태입니다. 키보드 훅과 트레이 콜백은 서로 다른 스레드에서
+# 실행될 수 있으므로, 전역 상태는 작고 명확하게 유지합니다.
 gui_root = None
 gui_lock = threading.Lock()
 tray_icon = None
@@ -56,6 +74,7 @@ def set_toggle_state(vk_code, enabled):
 
 
 def keep_lock_keys_stable():
+    """키보드 레이어가 기대하는 Lock 키 상태를 적용합니다."""
     set_toggle_state(VK_NUMLOCK, True)
     set_toggle_state(VK_CAPITAL, False)
     set_toggle_state(VK_SCROLL, False)
@@ -86,6 +105,11 @@ def foreground_process_name():
 
 
 def start_league_client_exit_hook():
+    """League Client에서 왼쪽 클릭이 들어오면 앱을 즉시 종료합니다.
+
+    기존 유틸리티의 동작을 맞춘 부분입니다. League Client를 사용할 때
+    키보드 보조 기능이 남아 있지 않도록 합니다.
+    """
     def hook_thread():
         global mouse_proc_ref
         low_level_mouse_proc = ctypes.WINFUNCTYPE(
@@ -115,6 +139,7 @@ def start_league_client_exit_hook():
 
 
 def ensure_single_instance():
+    """중복 키보드 훅을 막기 위해 앱을 한 번만 실행되게 합니다."""
     mutex_name = "Global\\LoGinKeyboardPython"
     handle = kernel32.CreateMutexW(None, False, mutex_name)
     if handle and kernel32.GetLastError() == 183:
@@ -127,6 +152,7 @@ def send_text(text):
 
 
 def copy_selection():
+    """현재 선택 영역을 복사한 뒤 검색/번역에 사용할 텍스트를 반환합니다."""
     keyboard.send("ctrl+c")
     time.sleep(0.08)
     return pyperclip.paste().strip()
@@ -152,6 +178,7 @@ def open_url(url):
 
 
 def create_tray_image():
+    """외부 .ico 파일 없이 쓰도록 트레이 아이콘 이미지를 메모리에서 만듭니다."""
     image = Image.new("RGBA", (64, 64), (16, 20, 24, 255))
     draw = ImageDraw.Draw(image)
     draw.rounded_rectangle((8, 8, 56, 56), radius=12, fill=(83, 209, 141, 255))
@@ -164,6 +191,7 @@ def create_tray_image():
 
 
 def quit_app(_icon=None, _item=None):
+    """단축키나 트레이 메뉴에서 호출되어 훅/트레이를 정리하고 종료합니다."""
     global tray_icon
     try:
         keyboard.unhook_all()
@@ -181,6 +209,7 @@ def quit_app(_icon=None, _item=None):
 
 
 def start_tray_icon():
+    """Windows 시스템 트레이 아이콘을 데몬 스레드에서 시작합니다."""
     def tray_thread():
         global tray_icon
         menu = pystray.Menu(
@@ -196,6 +225,7 @@ def start_tray_icon():
 
 
 def show_help_gui():
+    """항상 위에 표시되는 도움말/연습 창을 엽니다."""
     def build_gui():
         global gui_root
         with gui_lock:
@@ -387,6 +417,7 @@ def on_caps_down(_event):
 
 
 def on_caps_up(_event):
+    """CapsLock 단독 입력인지 조합 입력인지 확인한 뒤 동작을 결정합니다."""
     global caps_down_at, caps_combo_used, caps_h_prefix_down
     if caps_down_at is None:
         return
@@ -424,6 +455,7 @@ def handle_translate_shift(event):
 
 
 def caps_layer_active():
+    """CapsLock이 커스텀 키보드 레이어로 동작 중이면 True를 반환합니다."""
     return caps_down_at is not None or keyboard.is_pressed("caps lock")
 
 
@@ -466,6 +498,7 @@ def block_best_effort(*key_names):
 
 
 def register_hotkeys():
+    """전역 단축키와 저수준 키 핸들러를 모두 등록합니다."""
     block_best_effort("hanja", "hangul", "scroll lock")
 
     keyboard.add_hotkey("right ctrl+caps lock", show_help_gui, suppress=True)
@@ -534,6 +567,7 @@ def register_hotkeys():
 
 
 def main():
+    """앱 시작 순서입니다."""
     ensure_single_instance()
     keep_lock_keys_stable()
     start_league_client_exit_hook()
