@@ -1,93 +1,61 @@
-# Login Keyboard
+# LoginKeyboard Python
 
-키보드 입력 자동화/클립보드 처리를 위한 Python 스크립트입니다.
+AutoHotkey로 작성했던 LoGinKeyboard를 Python으로 옮긴 버전입니다.
 
-## 준비 사항
+## 가능 여부
 
-- Windows
-- Python 3.10 이상 권장
+대부분의 기능은 Python으로 구현 가능합니다.
 
-`keyboard` 패키지는 전역 키 입력을 감지하거나 제어할 때 관리자 권한이 필요할 수 있습니다. 실행이 되지 않거나 키 입력이 감지되지 않으면 PowerShell 또는 생성된 exe를 **관리자 권한으로 실행**하세요.
+- 전역 단축키: `keyboard`
+- 선택한 글자 복사 후 검색/번역: `keyboard`, `pyperclip`, `webbrowser`
+- 안내 GUI: `tkinter`
+- CapsLock/NumLock/ScrollLock 상태 제어: Windows API via `ctypes`
 
-## 실행 방법
+다만 AutoHotkey가 Windows 키보드 자동화에 특화되어 있어서, Python 버전은 관리자 권한이 필요할 수 있고 일부 키 이름은 키보드/IME/Windows 설정에 따라 다르게 잡힐 수 있습니다.
 
-1. 프로젝트 폴더로 이동합니다.
+## 설치
 
 ```powershell
 cd C:\workspace\GitHub\python-playgrounds\LoginKeyboard
+python -m pip install -r requirements.txt
 ```
 
-2. 가상환경을 생성하고 활성화합니다.
+## 실행
 
-```powershell
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-```
-
-PowerShell에서 스크립트 실행 정책 오류가 나면 아래 명령을 한 번 실행한 뒤 다시 활성화합니다.
-
-```powershell
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-```
-
-3. 필요한 패키지를 설치합니다.
-
-```powershell
-python -m pip install --upgrade pip
-pip install -r requirements.txt
-```
-
-4. 프로그램을 실행합니다.
+전역 키 입력을 잡아야 하므로 PowerShell 또는 빌드한 exe를 관리자 권한으로 실행하는 것을 권장합니다.
 
 ```powershell
 python .\login_keyboard.py
 ```
 
-키보드 후킹이 동작하지 않으면 PowerShell을 관리자 권한으로 열고 다시 실행하세요.
+## 구현된 단축키
 
-## exe 파일 만들기
+- `Right Ctrl + CapsLock`: 사용법 GUI 표시
+- `Right Ctrl + 방향키`: `Home`, `End`, `PageUp`, `PageDown`
+- `Right Ctrl + Enter`: 선택한 텍스트 구글 검색
+- `Right Ctrl + Right Shift`: 선택한 텍스트 구글 번역
+- `Right Shift + Esc`: `~`
+- `Right Shift + Left Shift + Esc`: 백틱
+- `CapsLock + I/J/K/L`: 방향키
+- `CapsLock + H + J/L/I/K`: `Home`, `End`, `PageUp`, `PageDown`
+- `CapsLock + Space/Z/X/C/A/S/D/Q/W/E`: 숫자 `0`-`9`
+- `CapsLock + 방향키`: 화살표 문자 `↑↓←→`
+- `CapsLock + Tab`: CapsLock 토글
+- `Ctrl + Shift + Q`: 종료
 
-`PyInstaller`를 사용하면 Python이 설치되지 않은 PC에서도 실행할 수 있는 exe 파일을 만들 수 있습니다.
-
-1. 가상환경이 활성화된 상태에서 PyInstaller를 설치합니다.
+## exe 빌드
 
 ```powershell
-pip install pyinstaller
-```
-
-2. exe 파일을 생성합니다.
-
-```powershell
+python -m pip install pyinstaller
 pyinstaller --onefile --name LoginKeyboard .\login_keyboard.py
 ```
 
-3. 빌드가 끝나면 아래 경로에 exe 파일이 생성됩니다.
-
-```text
-dist\LoginKeyboard.exe
-```
-
-실행:
-
-```powershell
-.\dist\LoginKeyboard.exe
-```
-
-콘솔 창 없이 실행하고 싶다면 아래 옵션을 사용할 수 있습니다.
+콘솔 없이 실행하려면:
 
 ```powershell
 pyinstaller --onefile --noconsole --name LoginKeyboard .\login_keyboard.py
 ```
 
-다만 오류 메시지를 확인하기 어렵기 때문에, 처음 빌드할 때는 `--noconsole` 없이 만드는 것을 권장합니다.
+## 참고
 
-## 빌드 파일 정리
-
-PyInstaller 실행 후 생성되는 `build` 폴더와 `.spec` 파일은 다시 빌드할 때 없어도 됩니다.
-
-```powershell
-Remove-Item -Recurse -Force .\build
-Remove-Item -Force .\LoginKeyboard.spec
-```
-
-완성된 exe만 배포하려면 `dist\LoginKeyboard.exe` 파일을 전달하면 됩니다.
+기존에 깨져 있던 파일은 `login_keyboard_broken.py`, `README_login_keyboard_broken.md`로 백업해 두었습니다.
