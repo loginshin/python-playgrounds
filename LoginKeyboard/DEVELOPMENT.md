@@ -4,10 +4,10 @@
 
 ## 현재 버전
 
-- 앱 버전: `3.1.0`
+- 앱 버전: `3.1.4`
 - 메인 코드: `login_keyboard.py`
-- 배포 파일: `releases/3.1.0/LoGinKeyboard-v3.1.0.exe`
-- 배포 메모: `releases/3.1.0/RELEASE_NOTES.txt`
+- 배포 파일: `releases/3.1.4/LoGinKeyboard-v3.1.4.exe`
+- 배포 메모: `releases/3.1.4/RELEASE_NOTES.txt`
 
 ## 앱 목적
 
@@ -26,7 +26,7 @@ LoGinKeyboard는 Windows 전용 키보드 보조 유틸리티입니다. AutoHotk
 
 - Windows API/상수: `ctypes` 기반 키 상태 제어, 포그라운드 프로세스 조회, 마우스 훅
 - 단일 실행 보장: Windows Mutex 사용
-- 트레이: `pystray`와 `Pillow`로 메모리 아이콘 생성
+- 트레이: `ctypes`로 Windows Shell API를 직접 호출해 아이콘과 우클릭 메뉴 표시
 - GUI: `tkinter`로 도움말/연습 창 표시
 - 키보드 레이어: `keyboard` 패키지의 전역 hotkey/hook 사용
 - 클립보드 검색/번역: `pyperclip`, `webbrowser` 사용
@@ -46,8 +46,10 @@ LoGinKeyboard는 Windows 전용 키보드 보조 유틸리티입니다. AutoHotk
 | `Right Shift + Left Shift + Esc` | 백틱 입력 |
 | `CapsLock + I/J/K/L` | 방향키 |
 | `CapsLock + H + J/L/I/K` | `Home` / `End` / `PageUp` / `PageDown` |
-| `CapsLock + Space/Z/X/C/A/S/D/Q/W/E` | 숫자 `0`-`9` |
-| `CapsLock + 방향키` | 화살표 문자 `↑↓←→` 입력 |
+| `Shift/Ctrl + CapsLock + I/J/K/L` | 선택/단어 이동 등 보조키 유지 |
+| `Shift/Ctrl + CapsLock + H + J/L/I/K` | `Home` / `End` / `PageUp` / `PageDown` 선택/확장 |
+| `CapsLock + Space/Z/X/C/A/S/D/Q/W/E` | `Numpad 0`-`Numpad 9` 실제 키 입력 |
+| `CapsLock + 방향키` | 실제 방향키 입력 |
 | `CapsLock + Tab` | 실제 CapsLock 토글 |
 | `Ctrl + Shift + Q` | 앱 종료 |
 
@@ -65,8 +67,18 @@ LoGinKeyboard는 Windows 전용 키보드 보조 유틸리티입니다. AutoHotk
 권장 환경:
 
 - Windows 10/11
-- Python 3.14 64-bit
+- Python 3.12 64-bit 권장
+- Windows 10/11 전용 배포만 목표라면 Python 3.14 64-bit 사용 가능
+- Windows 7까지 별도 지원해야 하면 Python 3.8 기반 빌드 검토
 - PowerShell
+
+Python 버전별 배포 기준:
+
+| 대상 Windows | 권장 Python |
+| --- | --- |
+| Windows 10/11 | `3.14` 가능 |
+| Windows 8.1 이상까지 고려 | `3.12` 권장 |
+| Windows 7까지 고려 | `3.8` 별도 빌드 검토 |
 
 설치:
 
@@ -87,13 +99,13 @@ python .\login_keyboard.py
 버전별 배포 폴더에 직접 빌드합니다.
 
 ```powershell
-python -m PyInstaller --onefile --noconsole --name LoGinKeyboard-v3.1.0 --distpath releases\3.1.0 --workpath build\LoGinKeyboard-v3.1.0 --specpath build\LoGinKeyboard-v3.1.0 --hidden-import keyboard --hidden-import pyperclip --hidden-import pystray --hidden-import PIL login_keyboard.py
+python -m PyInstaller --onefile --noconsole --name LoGinKeyboard-v3.1.4 --distpath releases\3.1.4 --workpath build\LoGinKeyboard-v3.1.4 --specpath build\LoGinKeyboard-v3.1.4 --hidden-import keyboard --hidden-import pyperclip login_keyboard.py
 ```
 
 빌드 후 배포 대상:
 
 ```text
-releases\3.1.0\LoGinKeyboard-v3.1.0.exe
+releases\3.1.4\LoGinKeyboard-v3.1.4.exe
 ```
 
 ## 버전 관리 규칙

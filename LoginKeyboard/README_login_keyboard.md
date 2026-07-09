@@ -17,6 +17,12 @@ AutoHotkey로 작성했던 LoGinKeyboard를 Python으로 옮긴 버전입니다.
 
 ## 설치
 
+권장 실행/빌드 환경:
+
+- 일반 배포: Python `3.12` 64-bit 권장
+- Windows 10/11 전용 배포: Python `3.14` 64-bit 사용 가능
+- Windows 7까지 지원해야 하는 별도 배포: Python `3.8` 검토 필요
+
 ```powershell
 cd C:\workspace\GitHub\python-playgrounds\LoginKeyboard
 python -m pip install -r requirements.txt
@@ -46,6 +52,8 @@ python .\login_keyboard.py
 - `Ctrl + Shift + Q`: 종료
 
 ## exe 빌드
+
+낮은 Windows 버전까지 고려하면 빌드에 사용한 Python 버전이 중요합니다. 현재 앱 코드는 Python 3.12에서도 동작하도록 유지하는 것을 권장합니다.
 
 ```powershell
 python -m pip install pyinstaller

@@ -4,13 +4,12 @@ r"""LoGinKeyboard 메인 프로그램.
 - NumLock/CapsLock/ScrollLock 상태를 의도한 값으로 유지합니다.
 - `keyboard` 패키지로 전역 단축키와 키 훅을 등록합니다.
 - Tkinter로 도움말/연습 창을 표시합니다.
-- Windows 트레이 아이콘으로 실행 상태 확인과 종료 메뉴를 제공합니다.
+- ctypes 기반 Windows 트레이 아이콘으로 실행 상태 확인과 종료 메뉴를 제공합니다.
 
 배포용 빌드 명령 예시:
     python -m PyInstaller --onefile --noconsole --name LoGinKeyboard-vX.Y.Z \
         --distpath releases\X.Y.Z --hidden-import keyboard \
-        --hidden-import pyperclip --hidden-import pystray --hidden-import PIL \
-        login_keyboard.py
+        --hidden-import pyperclip login_keyboard.py
 """
 
 import ctypes
@@ -26,53 +25,231 @@ from urllib.parse import quote_plus
 
 import keyboard
 import pyperclip
-import pystray
-from PIL import Image, ImageDraw
 
 
-APP_VERSION = "3.1.0"
+APP_VERSION = "3.1.4"
 APP_TITLE = f"LoGinKeyboard {APP_VERSION}"
 BLOG_URL = "https://loginshin.tistory.com/17"
 QUESTION_URL = "https://open.kakao.com/o/sVFNtrrf"
+MUTEX_NAME = "Global\\LoGinKeyboardPython"
+LEAGUE_CLIENT_PROCESS = "leagueclientux.exe"
+COPY_DELAY_SECONDS = 0.08
+CAPSLOCK_TOGGLE_HOLD_SECONDS = 1.0
+TRAY_CLASS_NAME = "LoGinKeyboardTrayWindow"
+GUI_SIZE = "1100x700"
 
 # ctypes로 Windows 키 상태와 훅을 다룰 때 사용하는 상수입니다.
 VK_HANGUL = 0x15
 VK_CAPITAL = 0x14
+VK_LSHIFT = 0xA0
+VK_RSHIFT = 0xA1
 VK_NUMLOCK = 0x90
 VK_SCROLL = 0x91
+VK_PRIOR = 0x21
+VK_NEXT = 0x22
+VK_END = 0x23
+VK_HOME = 0x24
+VK_LEFT = 0x25
+VK_UP = 0x26
+VK_RIGHT = 0x27
+VK_DOWN = 0x28
+VK_NUMPAD0 = 0x60
+VK_NUMPAD1 = 0x61
+VK_NUMPAD2 = 0x62
+VK_NUMPAD3 = 0x63
+VK_NUMPAD4 = 0x64
+VK_NUMPAD5 = 0x65
+VK_NUMPAD6 = 0x66
+VK_NUMPAD7 = 0x67
+VK_NUMPAD8 = 0x68
+VK_NUMPAD9 = 0x69
+VK_OEM_3 = 0xC0
+KEYEVENTF_EXTENDEDKEY = 0x0001
 KEYEVENTF_KEYUP = 0x0002
 WH_MOUSE_LL = 14
 WM_LBUTTONDOWN = 0x0201
 PROCESS_QUERY_LIMITED_INFORMATION = 0x1000
+WM_DESTROY = 0x0002
+WM_COMMAND = 0x0111
+WM_USER = 0x0400
+WM_TRAYICON = WM_USER + 20
+WM_LBUTTONDBLCLK = 0x0203
+WM_RBUTTONUP = 0x0205
+NIM_ADD = 0x00000000
+NIM_DELETE = 0x00000002
+NIF_MESSAGE = 0x00000001
+NIF_ICON = 0x00000002
+NIF_TIP = 0x00000004
+IDI_APPLICATION = 32512
+MF_STRING = 0x00000000
+TPM_RIGHTBUTTON = 0x0002
+TRAY_UID = 1
+TRAY_OPEN_HELP = 1001
+TRAY_OPEN_BLOG = 1002
+TRAY_EXIT = 1003
+NAVIGATION_VK = {
+    "left": VK_LEFT,
+    "right": VK_RIGHT,
+    "up": VK_UP,
+    "down": VK_DOWN,
+    "home": VK_HOME,
+    "end": VK_END,
+    "page up": VK_PRIOR,
+    "page down": VK_NEXT,
+}
+NUMPAD_VK = {
+    "0": VK_NUMPAD0,
+    "1": VK_NUMPAD1,
+    "2": VK_NUMPAD2,
+    "3": VK_NUMPAD3,
+    "4": VK_NUMPAD4,
+    "5": VK_NUMPAD5,
+    "6": VK_NUMPAD6,
+    "7": VK_NUMPAD7,
+    "8": VK_NUMPAD8,
+    "9": VK_NUMPAD9,
+}
+RIGHT_CTRL_NAVIGATION = {
+    "right ctrl+right": "end",
+    "right ctrl+left": "home",
+    "right ctrl+up": "page up",
+    "right ctrl+down": "page down",
+}
+CAPS_NAVIGATION_LAYER = {
+    "i": ("up", "page up"),
+    "j": ("left", "home"),
+    "k": ("down", "page down"),
+    "l": ("right", "end"),
+}
+NUMBER_LAYER = {
+    "space": "0",
+    "z": "1",
+    "x": "2",
+    "c": "3",
+    "a": "4",
+    "s": "5",
+    "d": "6",
+    "q": "7",
+    "w": "8",
+    "e": "9",
+}
+CAPS_ARROW_HOTKEYS = {
+    "caps lock+up": "up",
+    "caps lock+down": "down",
+    "caps lock+left": "left",
+    "caps lock+right": "right",
+}
 
 user32 = ctypes.windll.user32
 kernel32 = ctypes.windll.kernel32
+shell32 = ctypes.windll.shell32
+
+LRESULT = ctypes.c_longlong if ctypes.sizeof(ctypes.c_void_p) == 8 else ctypes.c_long
+WNDPROC = ctypes.WINFUNCTYPE(
+    LRESULT,
+    ctypes.wintypes.HWND,
+    ctypes.wintypes.UINT,
+    ctypes.wintypes.WPARAM,
+    ctypes.wintypes.LPARAM,
+)
+
+
+# Windows에 숨은 트레이 메시지 윈도우 클래스를 등록할 때 쓰는 구조체입니다.
+class WNDCLASSW(ctypes.Structure):
+    _fields_ = [
+        ("style", ctypes.wintypes.UINT),
+        ("lpfnWndProc", WNDPROC),
+        ("cbClsExtra", ctypes.c_int),
+        ("cbWndExtra", ctypes.c_int),
+        ("hInstance", ctypes.wintypes.HINSTANCE),
+        ("hIcon", ctypes.wintypes.HANDLE),
+        ("hCursor", ctypes.wintypes.HANDLE),
+        ("hbrBackground", ctypes.wintypes.HANDLE),
+        ("lpszMenuName", ctypes.wintypes.LPCWSTR),
+        ("lpszClassName", ctypes.wintypes.LPCWSTR),
+    ]
+
+
+# Windows Shell 트레이 아이콘 등록/삭제에 넘기는 구조체입니다.
+class NOTIFYICONDATAW(ctypes.Structure):
+    _fields_ = [
+        ("cbSize", ctypes.wintypes.DWORD),
+        ("hWnd", ctypes.wintypes.HWND),
+        ("uID", ctypes.wintypes.UINT),
+        ("uFlags", ctypes.wintypes.UINT),
+        ("uCallbackMessage", ctypes.wintypes.UINT),
+        ("hIcon", ctypes.wintypes.HANDLE),
+        ("szTip", ctypes.c_wchar * 128),
+        ("dwState", ctypes.wintypes.DWORD),
+        ("dwStateMask", ctypes.wintypes.DWORD),
+        ("szInfo", ctypes.c_wchar * 256),
+        ("uTimeoutOrVersion", ctypes.wintypes.UINT),
+        ("szInfoTitle", ctypes.c_wchar * 64),
+        ("dwInfoFlags", ctypes.wintypes.DWORD),
+        ("guidItem", ctypes.c_byte * 16),
+        ("hBalloonIcon", ctypes.wintypes.HANDLE),
+    ]
 
 # 런타임 공유 상태입니다. 키보드 훅과 트레이 콜백은 서로 다른 스레드에서
 # 실행될 수 있으므로, 전역 상태는 작고 명확하게 유지합니다.
 gui_root = None
 gui_lock = threading.Lock()
-tray_icon = None
+tray_hwnd = None
+tray_wndproc_ref = None
 caps_down_at = None
 caps_combo_used = False
 caps_h_prefix_down = False
 mouse_proc_ref = None
 
 
+# Windows 가상키를 한 번 눌렀다 떼는 가장 기본 입력 함수입니다.
 def press_vk(vk_code):
     user32.keybd_event(vk_code, 0, 0, 0)
     user32.keybd_event(vk_code, 0, KEYEVENTF_KEYUP, 0)
 
 
+# 방향키처럼 확장 키 플래그가 필요한 가상키 입력을 보냅니다.
+def press_extended_vk(vk_code):
+    """방향키/Home/End/PageUp/PageDown 같은 확장 키를 보냅니다."""
+    user32.keybd_event(vk_code, 0, KEYEVENTF_EXTENDEDKEY, 0)
+    user32.keybd_event(vk_code, 0, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0)
+
+
+# 일반 가상키 입력을 명확한 이름으로 감싼 별칭입니다.
+def press_vk_key(vk_code):
+    """일반 가상키를 한 번 눌렀다 뗍니다."""
+    user32.keybd_event(vk_code, 0, 0, 0)
+    user32.keybd_event(vk_code, 0, KEYEVENTF_KEYUP, 0)
+
+
+# 특정 가상키가 현재 눌려 있는지 확인합니다.
+def key_is_down(vk_code):
+    """현재 물리/논리 키 눌림 상태를 Windows 기준으로 확인합니다."""
+    return bool(user32.GetKeyState(vk_code) & 0x8000)
+
+
+# Shift 상태를 잠시 해제했다 복구할 때 쓰는 key down 래퍼입니다.
+def key_down(vk_code):
+    user32.keybd_event(vk_code, 0, 0, 0)
+
+
+# Shift 상태를 잠시 해제했다 복구할 때 쓰는 key up 래퍼입니다.
+def key_up(vk_code):
+    user32.keybd_event(vk_code, 0, KEYEVENTF_KEYUP, 0)
+
+
+# CapsLock/NumLock/ScrollLock 같은 토글 키의 현재 토글 상태를 읽습니다.
 def is_toggled(vk_code):
     return bool(user32.GetKeyState(vk_code) & 1)
 
 
+# 토글 키가 원하는 상태와 다를 때만 실제 키 입력으로 상태를 바꿉니다.
 def set_toggle_state(vk_code, enabled):
     if is_toggled(vk_code) != enabled:
         press_vk(vk_code)
 
 
+# 앱이 기대하는 Lock 키 기본값을 맞춥니다.
 def keep_lock_keys_stable():
     """키보드 레이어가 기대하는 Lock 키 상태를 적용합니다."""
     set_toggle_state(VK_NUMLOCK, True)
@@ -80,6 +257,7 @@ def keep_lock_keys_stable():
     set_toggle_state(VK_SCROLL, False)
 
 
+# 현재 포그라운드 창을 소유한 프로세스 파일명을 반환합니다.
 def foreground_process_name():
     hwnd = user32.GetForegroundWindow()
     if not hwnd:
@@ -104,6 +282,7 @@ def foreground_process_name():
         kernel32.CloseHandle(process)
 
 
+# League Client 클릭 감지를 위한 저수준 마우스 훅을 시작합니다.
 def start_league_client_exit_hook():
     """League Client에서 왼쪽 클릭이 들어오면 앱을 즉시 종료합니다.
 
@@ -121,7 +300,7 @@ def start_league_client_exit_hook():
 
         def mouse_proc(n_code, w_param, l_param):
             if n_code >= 0 and w_param == WM_LBUTTONDOWN:
-                if foreground_process_name().lower() == "leagueclientux.exe":
+                if foreground_process_name().lower() == LEAGUE_CLIENT_PROCESS:
                     os._exit(0)
             return user32.CallNextHookEx(None, n_code, w_param, l_param)
 
@@ -138,32 +317,62 @@ def start_league_client_exit_hook():
     threading.Thread(target=hook_thread, daemon=True).start()
 
 
+# 전역 Mutex로 앱 중복 실행을 막습니다.
 def ensure_single_instance():
     """중복 키보드 훅을 막기 위해 앱을 한 번만 실행되게 합니다."""
-    mutex_name = "Global\\LoGinKeyboardPython"
-    handle = kernel32.CreateMutexW(None, False, mutex_name)
+    handle = kernel32.CreateMutexW(None, False, MUTEX_NAME)
     if handle and kernel32.GetLastError() == 183:
         messagebox.showinfo("LoGinKeyboard", "LoGinKeyboard가 이미 실행 중입니다.")
         sys.exit(0)
 
 
-def send_text(text):
-    keyboard.write(text, delay=0)
+# 현재 보조키 상태 그대로 `~ 물리 키를 누릅니다.
+def press_backtick_key():
+    """키보드의 `~ 키 자체를 누릅니다. 문자 쓰기가 아니라 실제 키 입력입니다."""
+    press_vk_key(VK_OEM_3)
 
 
+# Shift가 눌려 있어도 ` 문자가 들어가도록 Shift를 잠시 해제합니다.
+def press_unshifted_backtick_key():
+    """Shift가 눌린 상태에서도 백틱 키를 백틱으로 입력합니다."""
+    left_shift_down = key_is_down(VK_LSHIFT)
+    right_shift_down = key_is_down(VK_RSHIFT)
+
+    if left_shift_down:
+        key_up(VK_LSHIFT)
+    if right_shift_down:
+        key_up(VK_RSHIFT)
+
+    press_vk_key(VK_OEM_3)
+
+    if left_shift_down:
+        key_down(VK_LSHIFT)
+    if right_shift_down:
+        key_down(VK_RSHIFT)
+
+
+# CapsLock 숫자 레이어에서 실제 numpad 입력을 보냅니다.
+def press_numpad_digit(value):
+    """CapsLock 숫자 레이어에서 실제 numpad 키를 누릅니다."""
+    press_vk_key(NUMPAD_VK[value])
+
+
+# 현재 선택된 텍스트를 클립보드로 복사해서 문자열로 가져옵니다.
 def copy_selection():
     """현재 선택 영역을 복사한 뒤 검색/번역에 사용할 텍스트를 반환합니다."""
     keyboard.send("ctrl+c")
-    time.sleep(0.08)
+    time.sleep(COPY_DELAY_SECONDS)
     return pyperclip.paste().strip()
 
 
+# 선택 텍스트를 Google 검색으로 엽니다.
 def search_selected_text():
     text = copy_selection()
     if text:
         webbrowser.open(f"https://www.google.com/search?q={quote_plus(text)}")
 
 
+# 선택 텍스트를 Google 번역으로 엽니다.
 def translate_selected_text():
     text = copy_selection()
     if text:
@@ -173,57 +382,144 @@ def translate_selected_text():
         )
 
 
+# 외부 브라우저로 URL을 엽니다.
 def open_url(url):
     webbrowser.open(url)
 
 
-def create_tray_image():
-    """외부 .ico 파일 없이 쓰도록 트레이 아이콘 이미지를 메모리에서 만듭니다."""
-    image = Image.new("RGBA", (64, 64), (16, 20, 24, 255))
-    draw = ImageDraw.Draw(image)
-    draw.rounded_rectangle((8, 8, 56, 56), radius=12, fill=(83, 209, 141, 255))
-    draw.rectangle((18, 23, 46, 42), fill=(16, 20, 24, 255))
-    draw.rectangle((22, 27, 27, 32), fill=(238, 243, 248, 255))
-    draw.rectangle((30, 27, 35, 32), fill=(238, 243, 248, 255))
-    draw.rectangle((38, 27, 43, 32), fill=(238, 243, 248, 255))
-    draw.rectangle((22, 35, 43, 38), fill=(238, 243, 248, 255))
-    return image
+# Windows Shell API에 트레이 아이콘을 추가합니다.
+def add_native_tray_icon(hwnd):
+    """Windows Shell API로 트레이 아이콘을 등록합니다."""
+    data = NOTIFYICONDATAW()
+    data.cbSize = ctypes.sizeof(NOTIFYICONDATAW)
+    data.hWnd = hwnd
+    data.uID = TRAY_UID
+    data.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP
+    data.uCallbackMessage = WM_TRAYICON
+    data.hIcon = user32.LoadIconW(None, IDI_APPLICATION)
+    data.szTip = APP_TITLE
+    shell32.Shell_NotifyIconW(NIM_ADD, ctypes.byref(data))
 
 
+# 앱 종료 시 Windows Shell API에서 트레이 아이콘을 제거합니다.
+def remove_native_tray_icon():
+    """앱 종료 전에 트레이 아이콘을 제거합니다."""
+    if not tray_hwnd:
+        return
+
+    data = NOTIFYICONDATAW()
+    data.cbSize = ctypes.sizeof(NOTIFYICONDATAW)
+    data.hWnd = tray_hwnd
+    data.uID = TRAY_UID
+    shell32.Shell_NotifyIconW(NIM_DELETE, ctypes.byref(data))
+
+
+# 트레이 아이콘 우클릭 메뉴를 생성하고 현재 커서 위치에 표시합니다.
+def show_native_tray_menu(hwnd):
+    """트레이 아이콘 우클릭 메뉴를 현재 마우스 위치에 표시합니다."""
+    menu = user32.CreatePopupMenu()
+    user32.AppendMenuW(menu, MF_STRING, TRAY_OPEN_HELP, "도움말 열기")
+    user32.AppendMenuW(menu, MF_STRING, TRAY_OPEN_BLOG, "블로그 열기")
+    user32.AppendMenuW(menu, MF_STRING, TRAY_EXIT, "종료")
+
+    point = ctypes.wintypes.POINT()
+    user32.GetCursorPos(ctypes.byref(point))
+    user32.SetForegroundWindow(hwnd)
+    user32.TrackPopupMenu(menu, TPM_RIGHTBUTTON, point.x, point.y, 0, hwnd, None)
+    user32.DestroyMenu(menu)
+
+
+# 트레이 메뉴 command id를 실제 동작 함수로 분기합니다.
+def handle_tray_command(command_id):
+    """트레이 메뉴 선택을 실제 앱 동작으로 연결합니다."""
+    if command_id == TRAY_OPEN_HELP:
+        show_help_gui()
+    elif command_id == TRAY_OPEN_BLOG:
+        open_url(BLOG_URL)
+    elif command_id == TRAY_EXIT:
+        quit_app()
+
+
+# 숨은 트레이 윈도우가 받는 Windows 메시지를 처리합니다.
+def tray_window_proc(hwnd, msg, w_param, l_param):
+    """보이지 않는 트레이 전용 윈도우의 메시지 처리 함수입니다."""
+    if msg == WM_TRAYICON:
+        if l_param == WM_LBUTTONDBLCLK:
+            show_help_gui()
+        elif l_param == WM_RBUTTONUP:
+            show_native_tray_menu(hwnd)
+        return 0
+
+    if msg == WM_COMMAND:
+        handle_tray_command(int(w_param) & 0xFFFF)
+        return 0
+
+    if msg == WM_DESTROY:
+        remove_native_tray_icon()
+        user32.PostQuitMessage(0)
+        return 0
+
+    return user32.DefWindowProcW(hwnd, msg, w_param, l_param)
+
+
+# 모든 키보드 훅과 트레이 아이콘을 정리한 뒤 프로세스를 종료합니다.
 def quit_app(_icon=None, _item=None):
     """단축키나 트레이 메뉴에서 호출되어 훅/트레이를 정리하고 종료합니다."""
-    global tray_icon
     try:
         keyboard.unhook_all()
     except Exception:
         pass
 
-    if tray_icon is not None:
-        try:
-            tray_icon.stop()
-        except Exception:
-            pass
-        tray_icon = None
+    try:
+        remove_native_tray_icon()
+    except Exception:
+        pass
 
     os._exit(0)
 
 
+# 트레이 아이콘 전용 메시지 루프를 별도 데몬 스레드에서 실행합니다.
 def start_tray_icon():
     """Windows 시스템 트레이 아이콘을 데몬 스레드에서 시작합니다."""
     def tray_thread():
-        global tray_icon
-        menu = pystray.Menu(
-            pystray.MenuItem("LoGinKeyboard 실행 중", lambda: None, enabled=False),
-            pystray.MenuItem("도움말 열기", lambda _icon, _item: show_help_gui()),
-            pystray.MenuItem("블로그 열기", lambda _icon, _item: open_url(BLOG_URL)),
-            pystray.MenuItem("종료", quit_app),
+        global tray_hwnd, tray_wndproc_ref
+        h_instance = kernel32.GetModuleHandleW(None)
+        tray_wndproc_ref = WNDPROC(tray_window_proc)
+
+        window_class = WNDCLASSW()
+        window_class.lpfnWndProc = tray_wndproc_ref
+        window_class.hInstance = h_instance
+        window_class.lpszClassName = TRAY_CLASS_NAME
+        user32.RegisterClassW(ctypes.byref(window_class))
+
+        tray_hwnd = user32.CreateWindowExW(
+            0,
+            TRAY_CLASS_NAME,
+            TRAY_CLASS_NAME,
+            0,
+            0,
+            0,
+            0,
+            0,
+            None,
+            None,
+            h_instance,
+            None,
         )
-        tray_icon = pystray.Icon("LoGinKeyboard", create_tray_image(), "LoGinKeyboard", menu)
-        tray_icon.run()
+        if not tray_hwnd:
+            return
+
+        add_native_tray_icon(tray_hwnd)
+
+        msg = ctypes.wintypes.MSG()
+        while user32.GetMessageW(ctypes.byref(msg), None, 0, 0) != 0:
+            user32.TranslateMessage(ctypes.byref(msg))
+            user32.DispatchMessageW(ctypes.byref(msg))
 
     threading.Thread(target=tray_thread, daemon=True).start()
 
 
+# Tkinter 도움말/연습 창을 띄우거나 이미 떠 있으면 앞으로 가져옵니다.
 def show_help_gui():
     """항상 위에 표시되는 도움말/연습 창을 엽니다."""
     def build_gui():
@@ -239,7 +535,7 @@ def show_help_gui():
             gui_root = root
 
             root.title(APP_TITLE)
-            root.geometry("1100x700")
+            root.geometry(GUI_SIZE)
             root.resizable(False, False)
             root.attributes("-topmost", True)
             root.overrideredirect(True)
@@ -332,10 +628,10 @@ def show_help_gui():
 
             chip(right, "CapsLock", 24, 22)
             caps_lines = [
-                "CapsLock + Space/Z/X/C/A/S/D/Q/W/E  =>  숫자 출력",
+                "CapsLock + Space/Z/X/C/A/S/D/Q/W/E  =>  Numpad 0~9 키 입력",
                 "CapsLock + J/K/L/I  =>  방향키",
                 "CapsLock + H + J/L/I/K  =>  Home / End / PageUp / PageDown",
-                "CapsLock + 방향키  =>  화살표 문자 ↑ ↓ ← →",
+                "CapsLock + 방향키  =>  실제 방향키 입력",
             ]
             for idx, line in enumerate(caps_lines):
                 label(right, line, 12, colors["text"], colors["panel"], x=28, y=70 + idx * 42)
@@ -401,21 +697,25 @@ def show_help_gui():
     threading.Thread(target=build_gui, daemon=True).start()
 
 
+# 실제 CapsLock 토글 키 입력을 보냅니다.
 def toggle_capslock():
     press_vk(VK_CAPITAL)
 
 
+# CapsLock이 단독 입력이 아니라 조합키로 쓰였음을 기록합니다.
 def mark_caps_combo_used():
     global caps_combo_used
     caps_combo_used = True
 
 
+# CapsLock 누름 시각을 저장해 단독/길게 누름을 구분할 준비를 합니다.
 def on_caps_down(_event):
     global caps_down_at, caps_combo_used
     caps_down_at = time.monotonic()
     caps_combo_used = False
 
 
+# CapsLock을 뗄 때 단독 입력, 길게 누름, 조합 입력을 판정합니다.
 def on_caps_up(_event):
     """CapsLock 단독 입력인지 조합 입력인지 확인한 뒤 동작을 결정합니다."""
     global caps_down_at, caps_combo_used, caps_h_prefix_down
@@ -428,12 +728,13 @@ def on_caps_up(_event):
 
     if caps_combo_used:
         return
-    if held_for >= 1:
+    if held_for >= CAPSLOCK_TOGGLE_HOLD_SECONDS:
         toggle_capslock()
     else:
         press_vk(VK_HANGUL)
 
 
+# CapsLock hotkey 콜백을 조합 입력으로 표시한 뒤 실행하게 감쌉니다.
 def combo(action):
     def wrapped():
         mark_caps_combo_used()
@@ -442,11 +743,7 @@ def combo(action):
     return wrapped
 
 
-def send_key(key_name):
-    mark_caps_combo_used()
-    keyboard.send(key_name)
-
-
+# Right Ctrl + Right Shift 조합으로 번역 기능을 실행합니다.
 def handle_translate_shift(event):
     if event.event_type == "down" and keyboard.is_pressed("right ctrl"):
         translate_selected_text()
@@ -454,11 +751,25 @@ def handle_translate_shift(event):
     return True
 
 
+# CapsLock 레이어가 현재 활성 상태인지 확인합니다.
 def caps_layer_active():
     """CapsLock이 커스텀 키보드 레이어로 동작 중이면 True를 반환합니다."""
     return caps_down_at is not None or keyboard.is_pressed("caps lock")
 
 
+# 방향키/Home/End/PageUp/PageDown을 Windows 확장 키 입력으로 보냅니다.
+def send_navigation_key(key_name):
+    """Windows 확장 이동키만 보내서 현재 물리 보조키 상태를 살립니다.
+
+    `keyboard.send("shift+left")`처럼 조합을 새로 만들어 보내면 실제로
+    누르고 있는 Shift/Ctrl 상태와 충돌할 수 있습니다. 여기서는 방향키만
+    Windows API로 보내서 현재 눌린 Shift/Ctrl/Alt를 자연스럽게 적용하게 합니다.
+    """
+    vk_code = NAVIGATION_VK[key_name]
+    press_extended_vk(vk_code)
+
+
+# CapsLock 레이어에서 숫자/특수 동작 키를 처리합니다.
 def handle_caps_layer_key(event, action):
     if not caps_layer_active():
         return True
@@ -469,6 +780,7 @@ def handle_caps_layer_key(event, action):
     return False
 
 
+# CapsLock + H prefix 상태를 기록합니다.
 def handle_caps_h(event):
     global caps_h_prefix_down
     if not caps_layer_active():
@@ -479,16 +791,18 @@ def handle_caps_h(event):
     return False
 
 
+# CapsLock 방향 레이어에서 일반 이동키와 H prefix 이동키를 분기합니다.
 def handle_caps_navigation_key(event, normal_key, h_prefix_key):
     if not caps_layer_active():
         return True
 
     mark_caps_combo_used()
     if event.event_type == "down":
-        keyboard.send(h_prefix_key if caps_h_prefix_down else normal_key)
+        send_navigation_key(h_prefix_key if caps_h_prefix_down else normal_key)
     return False
 
 
+# 환경에 따라 차단 실패가 가능한 키들을 가능한 범위에서만 막습니다.
 def block_best_effort(*key_names):
     for key_name in key_names:
         try:
@@ -497,75 +811,51 @@ def block_best_effort(*key_names):
             pass
 
 
+# 앱에서 쓰는 모든 전역 hotkey/hook을 등록합니다.
 def register_hotkeys():
     """전역 단축키와 저수준 키 핸들러를 모두 등록합니다."""
     block_best_effort("hanja", "hangul", "scroll lock")
 
     keyboard.add_hotkey("right ctrl+caps lock", show_help_gui, suppress=True)
-    keyboard.add_hotkey("right ctrl+right", lambda: keyboard.send("end"), suppress=True)
-    keyboard.add_hotkey("right ctrl+left", lambda: keyboard.send("home"), suppress=True)
-    keyboard.add_hotkey("right ctrl+up", lambda: keyboard.send("page up"), suppress=True)
-    keyboard.add_hotkey("right ctrl+down", lambda: keyboard.send("page down"), suppress=True)
+    for hotkey, target_key in RIGHT_CTRL_NAVIGATION.items():
+        keyboard.add_hotkey(hotkey, lambda key=target_key: keyboard.send(key), suppress=True)
     keyboard.add_hotkey("right ctrl+enter", search_selected_text, suppress=True)
     keyboard.hook_key("right shift", handle_translate_shift, suppress=True)
 
-    keyboard.add_hotkey("right shift+left shift+esc", lambda: send_text("`"), suppress=True)
-    keyboard.add_hotkey("right shift+esc", lambda: send_text("~"), suppress=True)
+    keyboard.add_hotkey("right shift+left shift+esc", press_unshifted_backtick_key, suppress=True)
+    keyboard.add_hotkey("right shift+esc", press_backtick_key, suppress=True)
 
     keyboard.on_press_key("caps lock", on_caps_down, suppress=True)
     keyboard.on_release_key("caps lock", on_caps_up, suppress=True)
     keyboard.add_hotkey("caps lock+tab", combo(toggle_capslock), suppress=True)
 
     keyboard.hook_key("h", handle_caps_h, suppress=True)
-    keyboard.hook_key(
-        "i",
-        lambda event: handle_caps_navigation_key(event, "up", "page up"),
-        suppress=True,
-    )
-    keyboard.hook_key(
-        "j",
-        lambda event: handle_caps_navigation_key(event, "left", "home"),
-        suppress=True,
-    )
-    keyboard.hook_key(
-        "k",
-        lambda event: handle_caps_navigation_key(event, "down", "page down"),
-        suppress=True,
-    )
-    keyboard.hook_key(
-        "l",
-        lambda event: handle_caps_navigation_key(event, "right", "end"),
-        suppress=True,
-    )
-
-    number_layer = {
-        "space": "0",
-        "z": "1",
-        "x": "2",
-        "c": "3",
-        "a": "4",
-        "s": "5",
-        "d": "6",
-        "q": "7",
-        "w": "8",
-        "e": "9",
-    }
-    for key, value in number_layer.items():
+    for key, (normal_key, h_prefix_key) in CAPS_NAVIGATION_LAYER.items():
         keyboard.hook_key(
             key,
-            lambda event, v=value: handle_caps_layer_key(event, lambda: keyboard.send(v)),
+            lambda event, normal=normal_key, prefix=h_prefix_key: handle_caps_navigation_key(
+                event,
+                normal,
+                prefix,
+            ),
             suppress=True,
         )
 
-    keyboard.add_hotkey("caps lock+esc", combo(lambda: send_text("`")), suppress=True)
-    keyboard.add_hotkey("caps lock+up", combo(lambda: send_text("↑")), suppress=True)
-    keyboard.add_hotkey("caps lock+down", combo(lambda: send_text("↓")), suppress=True)
-    keyboard.add_hotkey("caps lock+left", combo(lambda: send_text("←")), suppress=True)
-    keyboard.add_hotkey("caps lock+right", combo(lambda: send_text("→")), suppress=True)
+    for key, value in NUMBER_LAYER.items():
+        keyboard.hook_key(
+            key,
+            lambda event, v=value: handle_caps_layer_key(event, lambda: press_numpad_digit(v)),
+            suppress=True,
+        )
+
+    keyboard.add_hotkey("caps lock+esc", combo(press_unshifted_backtick_key), suppress=True)
+    for hotkey, key_name in CAPS_ARROW_HOTKEYS.items():
+        keyboard.add_hotkey(hotkey, combo(lambda key=key_name: send_navigation_key(key)), suppress=True)
 
     keyboard.add_hotkey("ctrl+shift+q", quit_app, suppress=True)
 
 
+# 앱의 시작 순서를 한 곳에서 관리합니다.
 def main():
     """앱 시작 순서입니다."""
     ensure_single_instance()
