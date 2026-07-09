@@ -4,6 +4,8 @@
 
 AutoHotkey로 작성했던 LoGinKeyboard를 Python으로 옮긴 버전입니다.
 
+Windows 버전은 `login_keyboard.py`, macOS 별도 구현은 `macos/` 폴더를 사용합니다.
+
 ## 가능 여부
 
 대부분의 기능은 Python으로 구현 가능합니다.
@@ -65,6 +67,10 @@ pyinstaller --onefile --name LoginKeyboard .\login_keyboard.py
 ```powershell
 pyinstaller --onefile --noconsole --name LoginKeyboard .\login_keyboard.py
 ```
+
+## macOS 버전
+
+macOS용 구현과 `.app` 패키징 방법은 `macos/README_macos.md`를 확인하세요. macOS 버전은 Caps Lock을 `F18`로 리매핑한 뒤 사용합니다.
 
 ## 참고
 

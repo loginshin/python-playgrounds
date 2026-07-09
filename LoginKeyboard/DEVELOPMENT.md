@@ -13,6 +13,8 @@
 
 LoGinKeyboard는 Windows 전용 키보드 보조 유틸리티입니다. AutoHotkey로 쓰던 키보드 레이어 기능을 Python으로 옮긴 버전이며, 전역 키보드 훅과 시스템 트레이를 사용합니다.
 
+macOS용 실험 구현은 Windows 코드와 분리해 `macos/` 폴더에 둡니다. macOS 버전은 Quartz Event Tap을 사용하며 Caps Lock을 `F18`로 리매핑한 뒤 레이어 키로 사용합니다.
+
 ## 주요 기능
 
 - `NumLock`은 켜진 상태로 유지합니다.
@@ -106,6 +108,21 @@ python -m PyInstaller --onefile --noconsole --name LoGinKeyboard-v3.1.4 --distpa
 
 ```text
 releases\3.1.4\LoGinKeyboard-v3.1.4.exe
+```
+
+## macOS app 빌드
+
+macOS 빌드는 macOS 머신에서만 수행합니다.
+
+```bash
+chmod +x macos/build_macos.sh
+./macos/build_macos.sh
+```
+
+빌드 후 배포 대상:
+
+```text
+releases/macos/LoGinKeyboard-macOS.app
 ```
 
 ## 버전 관리 규칙
