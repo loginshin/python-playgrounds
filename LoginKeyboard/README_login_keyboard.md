@@ -4,7 +4,7 @@
 
 AutoHotkey로 작성했던 LoGinKeyboard를 Python으로 옮긴 버전입니다.
 
-Windows 버전은 `login_keyboard.py`, macOS 별도 구현은 `macos/` 폴더를 사용합니다.
+Windows 버전은 `login_keyboard.py`를 실행 진입점으로 사용하고, 실제 구현은 `login_keyboard_windows/` 패키지에 나뉘어 있습니다. macOS 별도 구현은 `macos/` 폴더를 사용합니다.
 
 ## 가능 여부
 
@@ -48,8 +48,8 @@ python .\login_keyboard.py
 - `Right Shift + Left Shift + Esc`: 백틱
 - `CapsLock + I/J/K/L`: 방향키
 - `CapsLock + H + J/L/I/K`: `Home`, `End`, `PageUp`, `PageDown`
-- `CapsLock + Space/Z/X/C/A/S/D/Q/W/E`: 숫자 `0`-`9`
-- `CapsLock + 방향키`: 화살표 문자 `↑↓←→`
+- `CapsLock + Space/Z/X/C/A/S/D/Q/W/E`: `Numpad 0`-`Numpad 9` 실제 키 입력
+- `CapsLock + 방향키`: 실제 방향키 입력
 - `CapsLock + Tab`: CapsLock 토글
 - `Ctrl + Shift + Q`: 종료
 
@@ -61,6 +61,8 @@ python .\login_keyboard.py
 python -m pip install pyinstaller
 pyinstaller --onefile --name LoginKeyboard .\login_keyboard.py
 ```
+
+코드가 여러 파일로 나뉘어 있어도 PyInstaller는 `login_keyboard.py`에서 import하는 `login_keyboard_windows/` 패키지를 함께 묶습니다. 따라서 빌드 명령은 진입점 파일만 지정하면 됩니다.
 
 콘솔 없이 실행하려면:
 
