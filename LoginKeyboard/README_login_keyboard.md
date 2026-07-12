@@ -1,8 +1,7 @@
 # LoGinKeyboard Python
 
-Windows 전역 키보드 입력을 재매핑하는 유틸리티입니다. 실행 진입점은
-`login_keyboard.py`이며 실제 Windows 구현은 `login_keyboard_windows/` 패키지에
-나뉘어 있습니다.
+Windows 전역 키보드 입력을 재매핑하는 유틸리티입니다. Windows 코드, 실행
+진입점, 빌드 결과는 모두 `login_keyboard_windows/` 폴더에 분리되어 있습니다.
 
 ## 지원 환경
 
@@ -39,7 +38,7 @@ py -m pip install -r requirements.txt
 ## Python으로 실행하기
 
 ```powershell
-py .\login_keyboard.py
+py .\login_keyboard_windows\login_keyboard.py
 ```
 
 프로그램은 콘솔에서 계속 실행되며 시스템 트레이에 아이콘이 표시됩니다.
@@ -85,13 +84,13 @@ py -m pip install pyinstaller
 콘솔 창이 표시되지 않는 단일 EXE를 빌드합니다.
 
 ```powershell
-py -m PyInstaller --clean --noconfirm --onefile --noconsole --name LoGinKeyboard .\login_keyboard.py
+py -m PyInstaller --clean --noconfirm --onefile --noconsole --name LoGinKeyboard --distpath .\login_keyboard_windows\dist --workpath .\login_keyboard_windows\build --specpath .\login_keyboard_windows\build .\login_keyboard_windows\login_keyboard.py
 ```
 
 빌드가 끝나면 다음 파일이 생성됩니다.
 
 ```text
-dist\LoGinKeyboard.exe
+login_keyboard_windows\dist\LoGinKeyboard.exe
 ```
 
 `--onefile` 옵션이 `login_keyboard_windows/` 패키지와 필요한 라이브러리를
@@ -100,11 +99,12 @@ dist\LoGinKeyboard.exe
 오류를 확인하기 위한 콘솔 포함 EXE가 필요하면 `--noconsole`을 빼고 빌드합니다.
 
 ```powershell
-py -m PyInstaller --clean --noconfirm --onefile --name LoGinKeyboard-debug .\login_keyboard.py
+py -m PyInstaller --clean --noconfirm --onefile --name LoGinKeyboard-debug --distpath .\login_keyboard_windows\dist --workpath .\login_keyboard_windows\build-debug --specpath .\login_keyboard_windows\build-debug .\login_keyboard_windows\login_keyboard.py
 ```
 
 소스를 수정한 후에는 기존 EXE가 자동으로 바뀌지 않습니다. 같은 빌드 명령을
-다시 실행하고 새로 생성된 `dist\LoGinKeyboard.exe`를 사용해야 합니다.
+다시 실행하고 새로 생성된
+`login_keyboard_windows\dist\LoGinKeyboard.exe`를 사용해야 합니다.
 
 ## 다른 컴퓨터에서 실행하기
 
