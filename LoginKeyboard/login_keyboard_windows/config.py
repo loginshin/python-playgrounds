@@ -1,6 +1,6 @@
 """App-level configuration values shared by the Windows implementation."""
 
-APP_VERSION = "3.1.5"
+APP_VERSION = "3.1.8"
 APP_TITLE = f"LoGinKeyboard {APP_VERSION}"
 BLOG_URL = "https://loginshin.tistory.com/17"
 QUESTION_URL = "https://open.kakao.com/o/sVFNtrrf"

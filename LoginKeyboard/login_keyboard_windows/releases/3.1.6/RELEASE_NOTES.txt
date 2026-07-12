@@ -1,0 +1,15 @@
+LoGinKeyboard v3.1.6
+
+배포일: 2026-07-12
+
+변경 사항:
+- Right Ctrl + 방향키 사용 후 Ctrl이 눌린 상태로 남는 문제를 수정했습니다.
+- Ctrl 해제와 Home/End/PageUp/PageDown 입력이 앱의 suppress 훅에 막히지 않도록 키보드 재생 경로를 사용합니다.
+- 물리 Right Ctrl 상태는 별도로 추적하므로 Ctrl을 누른 채 방향키를 연속해서 사용할 수 있습니다.
+
+배포 파일:
+- LoGinKeyboard-v3.1.6.exe
+
+주의 사항:
+- 기존 버전을 시스템 트레이에서 완전히 종료한 뒤 새 버전을 실행하세요.
+- 이 EXE는 Python 3.14 64-bit로 빌드한 Windows 10/11용 배포 파일입니다.

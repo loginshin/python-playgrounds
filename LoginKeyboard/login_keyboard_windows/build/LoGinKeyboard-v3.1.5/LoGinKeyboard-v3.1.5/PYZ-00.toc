@@ -1,4 +1,4 @@
-('C:\\workspace\\GitHub\\python-playgrounds\\LoginKeyboard\\build\\LoGinKeyboard-v3.1.5\\LoGinKeyboard-v3.1.5\\PYZ-00.pyz',
+('C:\\workspace\\GitHub\\python-playgrounds\\LoginKeyboard\\login_keyboard_windows\\build\\LoGinKeyboard-v3.1.5\\LoGinKeyboard-v3.1.5\\PYZ-00.pyz',
  [('__future__',
    'C:\\Users\\shinw\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\__future__.py',
    'PYMODULE'),

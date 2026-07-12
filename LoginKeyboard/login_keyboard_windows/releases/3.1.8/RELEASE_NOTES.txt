@@ -1,0 +1,15 @@
+LoGinKeyboard v3.1.8
+
+배포일: 2026-07-12
+
+변경 사항:
+- Left Ctrl이 Right Ctrl 레이어로 잘못 인식되던 문제를 수정했습니다.
+- Left Ctrl + 방향키는 Windows 기본 동작인 단어/문단 단위 이동을 그대로 수행합니다.
+- 이름이 정확히 `right ctrl`인 이벤트만 전용 레이어로 차단합니다.
+
+배포 파일:
+- LoGinKeyboard-v3.1.8.exe
+
+주의 사항:
+- 기존 버전을 시스템 트레이에서 완전히 종료한 뒤 새 버전을 실행하세요.
+- 이 EXE는 Python 3.14 64-bit로 빌드한 Windows 10/11용 배포 파일입니다.

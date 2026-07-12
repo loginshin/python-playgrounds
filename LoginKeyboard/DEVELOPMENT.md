@@ -4,11 +4,11 @@
 
 ## 현재 버전
 
-- 앱 버전: `3.1.5`
+- 앱 버전: `3.1.8`
 - 실행 진입점: `login_keyboard_windows/login_keyboard.py`
 - Windows 구현 패키지: `login_keyboard_windows/`
-- 배포 파일: `login_keyboard_windows/releases/3.1.5/LoGinKeyboard-v3.1.5.exe`
-- 배포 메모: `login_keyboard_windows/releases/3.1.5/RELEASE_NOTES.txt`
+- 배포 파일: `login_keyboard_windows/releases/3.1.8/LoGinKeyboard-v3.1.8.exe`
+- 배포 메모: `login_keyboard_windows/releases/3.1.8/RELEASE_NOTES.txt`
 
 ## 앱 목적
 
@@ -106,7 +106,7 @@ py .\login_keyboard_windows\login_keyboard.py
 버전별 배포 폴더에 직접 빌드합니다.
 
 ```powershell
-py -m PyInstaller --onefile --noconsole --name LoGinKeyboard-v3.1.5 --distpath login_keyboard_windows\releases\3.1.5 --workpath login_keyboard_windows\build\LoGinKeyboard-v3.1.5 --specpath login_keyboard_windows\build\LoGinKeyboard-v3.1.5 --hidden-import keyboard --hidden-import pyperclip login_keyboard_windows\login_keyboard.py
+py -m PyInstaller --onefile --noconsole --name LoGinKeyboard-v3.1.8 --distpath login_keyboard_windows\releases\3.1.8 --workpath login_keyboard_windows\build\LoGinKeyboard-v3.1.8 --specpath login_keyboard_windows\build\LoGinKeyboard-v3.1.8 --hidden-import keyboard --hidden-import pyperclip login_keyboard_windows\login_keyboard.py
 ```
 
 `login_keyboard_windows/login_keyboard.py`는 작은 진입점이지만, PyInstaller가 import 관계를 따라 Windows 패키지를 함께 포함합니다. exe 빌드를 위해 모든 코드를 한 파일에 둘 필요는 없습니다.
@@ -114,7 +114,7 @@ py -m PyInstaller --onefile --noconsole --name LoGinKeyboard-v3.1.5 --distpath l
 빌드 후 배포 대상:
 
 ```text
-login_keyboard_windows\releases\3.1.5\LoGinKeyboard-v3.1.5.exe
+login_keyboard_windows\releases\3.1.8\LoGinKeyboard-v3.1.8.exe
 ```
 
 ## macOS app 빌드

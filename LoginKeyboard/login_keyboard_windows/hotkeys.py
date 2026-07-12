@@ -10,7 +10,6 @@ from .actions import (
     press_unshifted_backtick_key,
     search_selected_text,
     send_navigation_key,
-    send_right_ctrl_navigation_key,
     translate_selected_text,
 )
 from .config import CAPSLOCK_TOGGLE_HOLD_SECONDS
@@ -29,6 +28,7 @@ from .tray import quit_app
 caps_down_at = None
 caps_combo_used = False
 caps_h_prefix_down = False
+right_ctrl_layer_down = False
 
 
 # 실제 CapsLock 토글 키 입력을 보냅니다.
@@ -45,6 +45,10 @@ def mark_caps_combo_used():
 # CapsLock 누름 시각을 저장해 단독/길게 누름을 구분할 준비를 합니다.
 def on_caps_down(_event):
     global caps_down_at, caps_combo_used
+    if right_ctrl_layer_down:
+        show_help_gui()
+        return
+
     caps_down_at = time.monotonic()
     caps_combo_used = False
 
@@ -76,9 +80,22 @@ def combo(action):
     return wrapped
 
 
+# 오른쪽 Ctrl을 Windows에 전달하지 않고 전용 레이어 상태로만 유지합니다.
+def handle_right_ctrl_state(event):
+    global right_ctrl_layer_down
+    if event.name != "right ctrl":
+        return True
+
+    right_ctrl_layer_down = event.event_type == "down"
+    if right_ctrl_layer_down:
+        # 이전 실행에서 남았을 가능성이 있는 Ctrl 상태까지 즉시 해제합니다.
+        keyboard.release("right ctrl")
+    return False
+
+
 # Right Ctrl + Right Shift 조합으로 번역 기능을 실행합니다.
 def handle_translate_shift(event):
-    if event.event_type == "down" and keyboard.is_pressed("right ctrl"):
+    if event.event_type == "down" and right_ctrl_layer_down:
         translate_selected_text()
         return False
     return True
@@ -86,11 +103,21 @@ def handle_translate_shift(event):
 
 # 오른쪽 Ctrl + 방향키를 실제 Home/End/PageUp/PageDown 키 입력으로 변환합니다.
 def handle_right_ctrl_navigation(event, target_key):
-    if not keyboard.is_pressed("right ctrl"):
+    if not right_ctrl_layer_down:
         return True
 
     if event.event_type == "down":
-        send_right_ctrl_navigation_key(target_key)
+        send_navigation_key(target_key)
+    return False
+
+
+# Right Ctrl + Enter 조합으로 선택한 문자열을 검색합니다.
+def handle_right_ctrl_enter(event):
+    if not right_ctrl_layer_down:
+        return True
+
+    if event.event_type == "down":
+        search_selected_text()
     return False
 
 
@@ -145,14 +172,14 @@ def block_best_effort(*key_names):
 def register_hotkeys():
     block_best_effort("hanja", "hangul", "scroll lock")
 
-    keyboard.add_hotkey("right ctrl+caps lock", show_help_gui, suppress=True)
+    keyboard.hook(handle_right_ctrl_state, suppress=True)
     for arrow_key, target_key in RIGHT_CTRL_NAVIGATION.items():
         keyboard.hook_key(
             arrow_key,
             lambda event, key=target_key: handle_right_ctrl_navigation(event, key),
             suppress=True,
         )
-    keyboard.add_hotkey("right ctrl+enter", search_selected_text, suppress=True)
+    keyboard.hook_key("enter", handle_right_ctrl_enter, suppress=True)
     keyboard.hook_key("right shift", handle_translate_shift, suppress=True)
 
     keyboard.add_hotkey("right shift+left shift+esc", press_unshifted_backtick_key, suppress=True)
