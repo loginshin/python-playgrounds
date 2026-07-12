@@ -4,6 +4,7 @@ VK_HANGUL = 0x15
 VK_CAPITAL = 0x14
 VK_LSHIFT = 0xA0
 VK_RSHIFT = 0xA1
+VK_RCONTROL = 0xA3
 VK_NUMLOCK = 0x90
 VK_SCROLL = 0x91
 VK_PRIOR = 0x21
@@ -66,10 +67,10 @@ NUMPAD_SCAN_CODE = {
 }
 
 RIGHT_CTRL_NAVIGATION = {
-    "right ctrl+right": "end",
-    "right ctrl+left": "home",
-    "right ctrl+up": "page up",
-    "right ctrl+down": "page down",
+    "right": "end",
+    "left": "home",
+    "up": "page up",
+    "down": "page down",
 }
 
 CAPS_NAVIGATION_LAYER = {

@@ -10,6 +10,7 @@ from .actions import (
     press_unshifted_backtick_key,
     search_selected_text,
     send_navigation_key,
+    send_right_ctrl_navigation_key,
     translate_selected_text,
 )
 from .config import CAPSLOCK_TOGGLE_HOLD_SECONDS
@@ -83,6 +84,16 @@ def handle_translate_shift(event):
     return True
 
 
+# 오른쪽 Ctrl + 방향키를 실제 Home/End/PageUp/PageDown 키 입력으로 변환합니다.
+def handle_right_ctrl_navigation(event, target_key):
+    if not keyboard.is_pressed("right ctrl"):
+        return True
+
+    if event.event_type == "down":
+        send_right_ctrl_navigation_key(target_key)
+    return False
+
+
 # CapsLock 레이어가 현재 활성 상태인지 확인합니다.
 def caps_layer_active():
     return caps_down_at is not None or keyboard.is_pressed("caps lock")
@@ -135,8 +146,12 @@ def register_hotkeys():
     block_best_effort("hanja", "hangul", "scroll lock")
 
     keyboard.add_hotkey("right ctrl+caps lock", show_help_gui, suppress=True)
-    for hotkey, target_key in RIGHT_CTRL_NAVIGATION.items():
-        keyboard.add_hotkey(hotkey, lambda key=target_key: keyboard.send(key), suppress=True)
+    for arrow_key, target_key in RIGHT_CTRL_NAVIGATION.items():
+        keyboard.hook_key(
+            arrow_key,
+            lambda event, key=target_key: handle_right_ctrl_navigation(event, key),
+            suppress=True,
+        )
     keyboard.add_hotkey("right ctrl+enter", search_selected_text, suppress=True)
     keyboard.hook_key("right shift", handle_translate_shift, suppress=True)
 
@@ -171,4 +186,3 @@ def register_hotkeys():
         keyboard.add_hotkey(hotkey, combo(lambda key=key_name: send_navigation_key(key)), suppress=True)
 
     keyboard.add_hotkey("ctrl+shift+q", quit_app, suppress=True)
-

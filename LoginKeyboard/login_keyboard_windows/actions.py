@@ -9,7 +9,14 @@ import keyboard
 import pyperclip
 
 from .config import COPY_DELAY_SECONDS
-from .constants import NAVIGATION_VK, NUMPAD_SCAN_CODE, VK_LSHIFT, VK_OEM_3, VK_RSHIFT
+from .constants import (
+    NAVIGATION_VK,
+    NUMPAD_SCAN_CODE,
+    VK_LSHIFT,
+    VK_OEM_3,
+    VK_RCONTROL,
+    VK_RSHIFT,
+)
 from .native import key_down, key_is_down, key_up, press_extended_vk, press_scan_code, press_vk_key
 
 
@@ -73,6 +80,19 @@ def open_url(url):
 # 방향키/Home/End/PageUp/PageDown을 Windows 확장 키 입력으로 보냅니다.
 def send_navigation_key(key_name):
     press_extended_vk(NAVIGATION_VK[key_name])
+
+
+# 오른쪽 Ctrl을 레이어 키로만 사용하고 대상 프로그램에는 순수 이동키를 보냅니다.
+def send_right_ctrl_navigation_key(key_name):
+    right_ctrl_down = key_is_down(VK_RCONTROL)
+    if right_ctrl_down:
+        key_up(VK_RCONTROL)
+
+    try:
+        send_navigation_key(key_name)
+    finally:
+        if right_ctrl_down:
+            key_down(VK_RCONTROL)
 
 
 # 프로세스를 즉시 종료합니다.
