@@ -9,8 +9,8 @@ import keyboard
 import pyperclip
 
 from .config import COPY_DELAY_SECONDS
-from .constants import NAVIGATION_VK, NUMPAD_VK, VK_LSHIFT, VK_OEM_3, VK_RSHIFT
-from .native import key_down, key_is_down, key_up, press_extended_vk, press_vk_key
+from .constants import NAVIGATION_VK, NUMPAD_SCAN_CODE, VK_LSHIFT, VK_OEM_3, VK_RSHIFT
+from .native import key_down, key_is_down, key_up, press_extended_vk, press_scan_code, press_vk_key
 
 
 # 현재 보조키 상태 그대로 `~ 물리 키를 누릅니다.
@@ -38,7 +38,7 @@ def press_unshifted_backtick_key():
 
 # CapsLock 숫자 레이어에서 실제 numpad 입력을 보냅니다.
 def press_numpad_digit(value):
-    press_vk_key(NUMPAD_VK[value])
+    press_scan_code(NUMPAD_SCAN_CODE[value])
 
 
 # 현재 선택된 텍스트를 클립보드로 복사해서 문자열로 가져옵니다.
@@ -78,4 +78,3 @@ def send_navigation_key(key_name):
 # 프로세스를 즉시 종료합니다.
 def force_exit():
     os._exit(0)
-

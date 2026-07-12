@@ -14,16 +14,6 @@ VK_LEFT = 0x25
 VK_UP = 0x26
 VK_RIGHT = 0x27
 VK_DOWN = 0x28
-VK_NUMPAD0 = 0x60
-VK_NUMPAD1 = 0x61
-VK_NUMPAD2 = 0x62
-VK_NUMPAD3 = 0x63
-VK_NUMPAD4 = 0x64
-VK_NUMPAD5 = 0x65
-VK_NUMPAD6 = 0x66
-VK_NUMPAD7 = 0x67
-VK_NUMPAD8 = 0x68
-VK_NUMPAD9 = 0x69
 VK_OEM_3 = 0xC0
 
 KEYEVENTF_EXTENDEDKEY = 0x0001
@@ -61,17 +51,18 @@ NAVIGATION_VK = {
     "page down": VK_NEXT,
 }
 
-NUMPAD_VK = {
-    "0": VK_NUMPAD0,
-    "1": VK_NUMPAD1,
-    "2": VK_NUMPAD2,
-    "3": VK_NUMPAD3,
-    "4": VK_NUMPAD4,
-    "5": VK_NUMPAD5,
-    "6": VK_NUMPAD6,
-    "7": VK_NUMPAD7,
-    "8": VK_NUMPAD8,
-    "9": VK_NUMPAD9,
+# IBM PC 키보드의 물리 넘버패드 숫자 위치에 해당하는 Set 1 스캔 코드입니다.
+NUMPAD_SCAN_CODE = {
+    "0": 0x52,
+    "1": 0x4F,
+    "2": 0x50,
+    "3": 0x51,
+    "4": 0x4B,
+    "5": 0x4C,
+    "6": 0x4D,
+    "7": 0x47,
+    "8": 0x48,
+    "9": 0x49,
 }
 
 RIGHT_CTRL_NAVIGATION = {
@@ -107,4 +98,3 @@ CAPS_ARROW_HOTKEYS = {
     "caps lock+left": "left",
     "caps lock+right": "right",
 }
-

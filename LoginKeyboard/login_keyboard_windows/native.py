@@ -25,6 +25,39 @@ shell32 = ctypes.windll.shell32
 
 mouse_proc_ref = None
 
+INPUT_KEYBOARD = 1
+KEYEVENTF_SCANCODE = 0x0008
+
+
+class KEYBDINPUT(ctypes.Structure):
+    _fields_ = (
+        ("wVk", ctypes.c_ushort),
+        ("wScan", ctypes.c_ushort),
+        ("dwFlags", ctypes.c_ulong),
+        ("time", ctypes.c_ulong),
+        ("dwExtraInfo", ctypes.c_size_t),
+    )
+
+
+class MOUSEINPUT(ctypes.Structure):
+    _fields_ = (
+        ("dx", ctypes.c_long),
+        ("dy", ctypes.c_long),
+        ("mouseData", ctypes.c_ulong),
+        ("dwFlags", ctypes.c_ulong),
+        ("time", ctypes.c_ulong),
+        ("dwExtraInfo", ctypes.c_size_t),
+    )
+
+
+class INPUT_UNION(ctypes.Union):
+    _fields_ = (("ki", KEYBDINPUT), ("mi", MOUSEINPUT))
+
+
+class INPUT(ctypes.Structure):
+    _anonymous_ = ("data",)
+    _fields_ = (("type", ctypes.c_ulong), ("data", INPUT_UNION))
+
 
 # Windows 가상키를 한 번 눌렀다 떼는 가장 기본 입력 함수입니다.
 def press_vk(vk_code):
@@ -42,6 +75,31 @@ def press_extended_vk(vk_code):
 def press_vk_key(vk_code):
     user32.keybd_event(vk_code, 0, 0, 0)
     user32.keybd_event(vk_code, 0, KEYEVENTF_KEYUP, 0)
+
+
+# 실제 키보드 위치의 스캔 코드를 보내 프로그램이 넘버패드 키로 인식하게 합니다.
+def press_scan_code(scan_code):
+    inputs = (INPUT * 2)(
+        INPUT(
+            type=INPUT_KEYBOARD,
+            data=INPUT_UNION(
+                ki=KEYBDINPUT(wVk=0, wScan=scan_code, dwFlags=KEYEVENTF_SCANCODE)
+            ),
+        ),
+        INPUT(
+            type=INPUT_KEYBOARD,
+            data=INPUT_UNION(
+                ki=KEYBDINPUT(
+                    wVk=0,
+                    wScan=scan_code,
+                    dwFlags=KEYEVENTF_SCANCODE | KEYEVENTF_KEYUP,
+                )
+            ),
+        ),
+    )
+    sent_count = user32.SendInput(len(inputs), inputs, ctypes.sizeof(INPUT))
+    if sent_count != len(inputs):
+        raise ctypes.WinError(ctypes.get_last_error())
 
 
 # 특정 가상키가 현재 눌려 있는지 확인합니다.
@@ -138,4 +196,3 @@ def ensure_single_instance():
     if handle and kernel32.GetLastError() == 183:
         messagebox.showinfo("LoGinKeyboard", "LoGinKeyboard가 이미 실행 중입니다.")
         sys.exit(0)
-
