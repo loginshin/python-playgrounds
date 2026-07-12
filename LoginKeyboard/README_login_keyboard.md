@@ -1,79 +1,121 @@
-# LoginKeyboard Python
+# LoGinKeyboard Python
 
-개발자용 구조/빌드/배포 명세는 `DEVELOPMENT.md`를 기준으로 확인하세요.
+Windows 전역 키보드 입력을 재매핑하는 유틸리티입니다. 실행 진입점은
+`login_keyboard.py`이며 실제 Windows 구현은 `login_keyboard_windows/` 패키지에
+나뉘어 있습니다.
 
-AutoHotkey로 작성했던 LoGinKeyboard를 Python으로 옮긴 버전입니다.
+## 지원 환경
 
-Windows 버전은 `login_keyboard.py`를 실행 진입점으로 사용하고, 실제 구현은 `login_keyboard_windows/` 패키지에 나뉘어 있습니다. macOS 별도 구현은 `macos/` 폴더를 사용합니다.
+- 권장: Windows 10/11, Python 3.12 64-bit
+- Windows 10/11만 대상으로 빌드: Python 3.14 64-bit 사용 가능
+- Windows 7까지 지원해야 하는 별도 빌드: Python 3.8 기반 검토 필요
 
-## 가능 여부
+전역 키보드 입력을 가로채므로 일부 PC에서는 관리자 권한이 필요할 수 있습니다.
 
-대부분의 기능은 Python으로 구현 가능합니다.
+## 처음 설치하기
 
-- 전역 단축키: `keyboard`
-- 선택한 글자 복사 후 검색/번역: `keyboard`, `pyperclip`, `webbrowser`
-- 안내 GUI: `tkinter`
-- CapsLock/NumLock/ScrollLock 상태 제어: Windows API via `ctypes`
-
-다만 AutoHotkey가 Windows 키보드 자동화에 특화되어 있어서, Python 버전은 관리자 권한이 필요할 수 있고 일부 키 이름은 키보드/IME/Windows 설정에 따라 다르게 잡힐 수 있습니다.
-
-## 설치
-
-권장 실행/빌드 환경:
-
-- 일반 배포: Python `3.12` 64-bit 권장
-- Windows 10/11 전용 배포: Python `3.14` 64-bit 사용 가능
-- Windows 7까지 지원해야 하는 별도 배포: Python `3.8` 검토 필요
+PowerShell을 열고 프로젝트 폴더로 이동합니다.
 
 ```powershell
 cd C:\workspace\GitHub\python-playgrounds\LoginKeyboard
-python -m pip install -r requirements.txt
 ```
 
-## 실행
-
-전역 키 입력을 잡아야 하므로 PowerShell 또는 빌드한 exe를 관리자 권한으로 실행하는 것을 권장합니다.
+Python 버전을 확인합니다.
 
 ```powershell
-python .\login_keyboard.py
+py --version
 ```
 
-## 구현된 단축키
-
-- `Right Ctrl + CapsLock`: 사용법 GUI 표시
-- `Right Ctrl + 방향키`: `Home`, `End`, `PageUp`, `PageDown`
-- `Right Ctrl + Enter`: 선택한 텍스트 구글 검색
-- `Right Ctrl + Right Shift`: 선택한 텍스트 구글 번역
-- `Right Shift + Esc`: `~`
-- `Right Shift + Left Shift + Esc`: 백틱
-- `CapsLock + I/J/K/L`: 방향키
-- `CapsLock + H + J/L/I/K`: `Home`, `End`, `PageUp`, `PageDown`
-- `CapsLock + Space/Z/X/C/A/S/D/Q/W/E`: `Numpad 0`-`Numpad 9` 실제 키 입력
-- `CapsLock + 방향키`: 실제 방향키 입력
-- `CapsLock + Tab`: CapsLock 토글
-- `Ctrl + Shift + Q`: 종료
-
-## exe 빌드
-
-낮은 Windows 버전까지 고려하면 빌드에 사용한 Python 버전이 중요합니다. 현재 앱 코드는 Python 3.12에서도 동작하도록 유지하는 것을 권장합니다.
+필요한 패키지를 설치합니다.
 
 ```powershell
-python -m pip install pyinstaller
-pyinstaller --onefile --name LoginKeyboard .\login_keyboard.py
+py -m pip install -r requirements.txt
 ```
 
-코드가 여러 파일로 나뉘어 있어도 PyInstaller는 `login_keyboard.py`에서 import하는 `login_keyboard_windows/` 패키지를 함께 묶습니다. 따라서 빌드 명령은 진입점 파일만 지정하면 됩니다.
+`py` 명령을 찾을 수 없다면 Python을 설치할 때 **Python Launcher**를 함께
+설치해야 합니다. 이 PC에서는 `python` 명령이 Microsoft Store 실행 별칭을
+가리켜 `Python`만 출력할 수 있으므로 `py` 사용을 권장합니다.
 
-콘솔 없이 실행하려면:
+## Python으로 실행하기
 
 ```powershell
-pyinstaller --onefile --noconsole --name LoginKeyboard .\login_keyboard.py
+py .\login_keyboard.py
 ```
 
-## macOS 버전
+프로그램은 콘솔에서 계속 실행되며 시스템 트레이에 아이콘이 표시됩니다.
+키 입력이 동작하지 않으면 PowerShell을 관리자 권한으로 열고 다시 실행합니다.
 
-macOS용 구현과 `.app` 패키징 방법은 `macos/README_macos.md`를 확인하세요. macOS 버전은 Caps Lock을 `F18`로 리매핑한 뒤 사용합니다.
+종료 방법:
 
-## 참고
+- `Ctrl + Shift + Q`
+- 시스템 트레이 아이콘을 우클릭한 뒤 `종료`
+- 콘솔에서 `Ctrl + C`
 
-기존에 깨져 있던 파일은 `login_keyboard_broken.py`, `README_login_keyboard_broken.md`로 백업해 두었습니다.
+코드를 수정한 경우 실행 중인 프로그램을 종료한 뒤 다시 실행해야 변경 내용이
+반영됩니다.
+
+## 주요 단축키
+
+| 단축키 | 입력 결과 |
+| --- | --- |
+| `Right Ctrl + Left` | 실제 `Home` 키 입력 |
+| `Right Ctrl + Right` | 실제 `End` 키 입력 |
+| `Right Ctrl + Up` | 실제 `Page Up` 키 입력 |
+| `Right Ctrl + Down` | 실제 `Page Down` 키 입력 |
+| `Right Ctrl + Enter` | 선택한 문자열 Google 검색 |
+| `Right Ctrl + Right Shift` | 선택한 문자열 Google 번역 |
+| `Right Ctrl + CapsLock` | 도움말 GUI 열기 |
+| `CapsLock + I/J/K/L` | 방향키 입력 |
+| `CapsLock + H + J/L/I/K` | `Home` / `End` / `Page Up` / `Page Down` 입력 |
+| `CapsLock + Space/Z/X/C/A/S/D/Q/W/E` | 실제 넘버패드 `0`-`9` 키 입력 |
+| `CapsLock + Tab` | 실제 CapsLock 토글 |
+| `Right Shift + Esc` | `~` 키 입력 |
+| `Right Shift + Left Shift + Esc` | 백틱 키 입력 |
+| `Ctrl + Shift + Q` | 프로그램 종료 |
+
+## 단일 EXE 만들기
+
+EXE는 반드시 Windows에서 빌드해야 합니다. 먼저 실행 중인 LoGinKeyboard를
+종료한 다음 PyInstaller를 설치합니다.
+
+```powershell
+py -m pip install pyinstaller
+```
+
+콘솔 창이 표시되지 않는 단일 EXE를 빌드합니다.
+
+```powershell
+py -m PyInstaller --clean --noconfirm --onefile --noconsole --name LoGinKeyboard .\login_keyboard.py
+```
+
+빌드가 끝나면 다음 파일이 생성됩니다.
+
+```text
+dist\LoGinKeyboard.exe
+```
+
+`--onefile` 옵션이 `login_keyboard_windows/` 패키지와 필요한 라이브러리를
+하나의 EXE 안에 묶습니다. 소스 코드를 실제 한 파일로 합칠 필요는 없습니다.
+
+오류를 확인하기 위한 콘솔 포함 EXE가 필요하면 `--noconsole`을 빼고 빌드합니다.
+
+```powershell
+py -m PyInstaller --clean --noconfirm --onefile --name LoGinKeyboard-debug .\login_keyboard.py
+```
+
+소스를 수정한 후에는 기존 EXE가 자동으로 바뀌지 않습니다. 같은 빌드 명령을
+다시 실행하고 새로 생성된 `dist\LoGinKeyboard.exe`를 사용해야 합니다.
+
+## 다른 컴퓨터에서 실행하기
+
+다른 Windows 컴퓨터에는 Python이나 소스 파일이 없어도 EXE 하나만 전달하면
+됩니다. 다만 다음 제한이 있습니다.
+
+- Windows 전용 프로그램이며 macOS에서는 Windows EXE를 실행할 수 없습니다.
+- 전역 키보드 훅 특성상 관리자 권한이 필요할 수 있습니다.
+- 서명되지 않은 개인 EXE이므로 Windows Defender 또는 SmartScreen 경고가
+  표시될 수 있습니다.
+- 낮은 Windows 버전 지원 범위는 EXE를 만든 Python 버전에 영향을 받습니다.
+
+macOS 구현과 `.app` 빌드 방법은 `macos/README_macos.md`를 참고하세요. 상세한
+개발 구조와 버전별 배포 명령은 `DEVELOPMENT.md`에 정리되어 있습니다.
