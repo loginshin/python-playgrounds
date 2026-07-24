@@ -1,0 +1,15 @@
+Input Language Indicator v0.1.0
+================================
+
+첫 배포 버전
+
+- 텍스트 커서 오른쪽 아래에 현재 입력 언어 표시
+- 한국어, 영어, 일본어, 중국어 단축 표시 지원
+- 입력 위치를 벗어나면 표시 자동 숨김
+- Python 설치 없이 실행할 수 있는 단일 Windows EXE
+
+실행:
+InputLanguageIndicator.exe를 더블 클릭합니다.
+
+종료:
+작업 관리자에서 InputLanguageIndicator.exe를 종료합니다.

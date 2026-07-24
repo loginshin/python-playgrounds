@@ -1,0 +1,13 @@
+Input Language Indicator v0.4.0
+================================
+
+- Windows UI Automation TextPattern2로 실제 캐럿 범위를 직접 추적
+- Chrome, Edge 및 최신 Windows 앱의 입력 커서 지원 강화
+- Win32, UI Automation, MSAA의 3단계 커서 탐색 적용
+- 작업표시줄 트레이 아이콘과 한/영 상태 표시 유지
+
+실행:
+InputLanguageIndicator.exe를 더블 클릭합니다.
+
+종료:
+작업표시줄 오른쪽의 아이콘을 우클릭하고 '종료'를 누릅니다.
